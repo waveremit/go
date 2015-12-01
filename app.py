@@ -63,12 +63,20 @@ and URL "%s/%%s".
 </table>
 ''' % (config.BASE_URL, ''.join(rows)))
 
-@app.route('/<name>')
+@app.route('/<path:name>')
 def go(name):
     """Redirects to a link."""
     url = data.get_url(name)
+    # If "foo/bar/baz" is not found, try "foo/bar" and append "/baz";
+    # if that's not found, try "foo" and append "/bar/baz".
+    suffix = ''
+    while not url and '/' in name:
+        name, part = name.rsplit('/', 1)
+        suffix = '/' + part + suffix
+        url = data.get_url(name)
     if not url:
-        return redirect('/.edit?name=' + urlquote(name))
+        return redirect('/.edit?name=' + urlquote(name + suffix))
+    url += suffix
     qs = (request.query_string or '').encode('utf-8')
     if qs:
         url += ('&' if '?' in url else '?') + qs
@@ -139,16 +147,16 @@ def save():
     return redirect('/.edit?name=' + urlquote(name))
 
 def normalize(name):
-    """Keeps only lowercase letters and digits.  We don't require all shortcuts
-    to be made only of these characters, but we encourage it by normalizing the
-    shortcut name when prepopulating the creation form.
+    """Keeps only lowercase letters, digits, and slashes.  We don't require all
+    shortcuts to be made only of these characters, but we encourage it by
+    normalizing the shortcut name when prepopulating the creation form.
 
     We do this to give users confidence that they can hear a spoken link and
     just type it in without having to guess whether to use hyphens or
     underscores as word separators.  For special cases, it's still possible
     to make a shortcut name with punctuation by typing it into the name field.
     """
-    return re.sub(r'[^a-z0-9]', '', name.lower())
+    return re.sub(r'[^a-z0-9/]', '', name.lower())
 
 @app.route('/.style.css')
 def stylesheet():
