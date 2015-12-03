@@ -57,7 +57,7 @@ then add a search engine with the keyword "go"
 and URL "%s/%%s".
 </div>
 
-<table class="links">
+<table class="links" cellpadding=0 cellspacing=0>
 <tr><th>shortcut</th><th>clicks</th><th>url</th>
 %s
 </table>
@@ -77,7 +77,7 @@ def go(name):
     if not url:
         return redirect('/.edit?name=' + urlquote(name + suffix))
     if '%s' in url:
-        url = url.replace('%s', suffix.lstrip('/'))
+        url = url.replace('%s', urlquote(suffix.lstrip('/')))
     else:
         url += suffix
     qs = (request.query_string or '').encode('utf-8')
@@ -115,7 +115,7 @@ def edit():
 <div><a href="/{name_param}">go/{name_param}</a> {message}</div>
 <form action="/.save" method="post">
 <input type="hidden" name="original_name" value="{original_name}">
-<table class="form"><tr valign="center">
+<table class="form" cellpadding=0 cellspacing=0><tr valign="center">
   <td>go/<input name="name" value="{name}" placeholder="shortcut" size=10>
   <td><span class="arrow">\u2192</span>
   <td><input id="url" name="url" value="{url}" placeholder="URL" size=60>
@@ -123,6 +123,18 @@ def edit():
 <div><input type=submit value="Save"></div>
 <script>document.getElementById("url").focus()</script>
 </form>
+
+<div class="tip">
+Fancy tricks:
+<ul>
+<li>If go/foo is defined,
+then go/foo?a=b will expand go/foo and append "a=b" as a form variable.
+<li>If go/foo is defined but not go/foo/bar,
+then go/foo/bar will expand go/foo and append "/bar".
+<li>If go/foo is defined to be a URL that contains "%s",
+then go/foo/bar will expand go/foo and substitute "bar" for "%s".
+</ul>
+</div>
 ''', title=title, message=message, url=url or '',
      name=name, name_param=urlquote(name), original_name=original_name))
 
