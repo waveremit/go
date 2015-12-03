@@ -76,7 +76,10 @@ def go(name):
         url = data.get_url(name)
     if not url:
         return redirect('/.edit?name=' + urlquote(name + suffix))
-    url += suffix
+    if '%s' in url:
+        url = url.replace('%s', suffix.lstrip('/'))
+    else:
+        url += suffix
     qs = (request.query_string or '').encode('utf-8')
     if qs:
         url += ('&' if '?' in url else '?') + qs
