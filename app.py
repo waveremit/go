@@ -116,11 +116,15 @@ def edit():
 <form action="/.save" method="post">
 <input type="hidden" name="original_name" value="{original_name}">
 <table class="form" cellpadding=0 cellspacing=0><tr valign="center">
-  <td>go/<input name="name" value="{name}" placeholder="shortcut" size=10>
+  <td>go/<input name="name" value="{name}" placeholder="shortcut" size=12>
   <td><span class="arrow">\u2192</span>
   <td><input id="url" name="url" value="{url}" placeholder="URL" size=60>
 </tr></table>
-<div><input type=submit value="Save"></div>
+<div>
+  <input type=submit name="save" value="Save"> &nbsp;
+  <input type=submit name="delete" value="Delete"
+      onclick="return confirm('Really delete this link?')">
+</div>
 <script>document.getElementById("url").focus()</script>
 </form>
 
@@ -148,6 +152,10 @@ def save():
         return make_error_response('The shortcut must be made of letters.')
     if not (url.startswith('http://') or url.startswith('https://')):
         return make_error_response('URLs must start with http:// or https://.')
+    if request.form.get('delete'):
+        data.delete_link(original_name)
+        data.log('delete', original_name, url)
+        return redirect('/')
     try:
         if original_name:
             if not data.update_link(original_name, name, url):

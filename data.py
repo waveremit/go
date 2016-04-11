@@ -31,6 +31,9 @@ def update_link(name, new_name, new_url):
 def add_link(name, url):
     db.execute('insert into urls (name, url) values (%s, %s)', name, url)
 
+def delete_link(name):
+    db.execute('delete from urls where name = %s', name)
+
 def update_count(name):
     (count,) = db.execute('select count(*) from events where '
                           'event = %s and name = %s', 'redirect', name).first()
