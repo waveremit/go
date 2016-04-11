@@ -66,14 +66,14 @@ and URL "%s/%%s".
 @app.route('/<path:name>')
 def go(name):
     """Redirects to a link."""
-    url = data.get_url(name)
+    url = data.get_url(name) or data.get_url(normalize(name))
     # If "foo/bar/baz" is not found, try "foo/bar" and append "/baz";
     # if that's not found, try "foo" and append "/bar/baz".
     suffix = ''
     while not url and '/' in name:
         name, part = name.rsplit('/', 1)
         suffix = '/' + part + suffix
-        url = data.get_url(name)
+        url = data.get_url(name) or data.get_url(normalize(name))
     if not url:
         return redirect('/.edit?name=' + urlquote(name + suffix))
     if '%s' in url:
