@@ -150,8 +150,9 @@ def save():
     url = request.form.get('url', '')
     if not name:
         return make_error_response('The shortcut must be made of letters.')
-    if not (url.startswith('http://') or url.startswith('https://')):
-        return make_error_response('URLs must start with http:// or https://.')
+    if not re.match(r'^(http|https|quip)://', url):
+        return make_error_response(
+            'URLs must start with http://, https://, or quip://.')
     if request.form.get('delete'):
         data.delete_link(original_name)
         data.log('delete', original_name, url)
