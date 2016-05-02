@@ -83,6 +83,8 @@ def go(name):
     qs = (request.query_string or '').encode('utf-8')
     if qs:
         url += ('&' if '?' in url else '?') + qs
+    # Open quips directly in the Quip app.
+    url = re.sub(r'^https?://wave.quip.com/', 'quip://', url)
     data.log('redirect', name, url)
     data.update_count(name)
     return redirect(url)
@@ -150,9 +152,8 @@ def save():
     url = request.form.get('url', '')
     if not name:
         return make_error_response('The shortcut must be made of letters.')
-    if not re.match(r'^(http|https|quip)://', url):
-        return make_error_response(
-            'URLs must start with http://, https://, or quip://.')
+    if not re.match(r'^(http|https)://', url):
+        return make_error_response('URLs must start with http:// or https://.')
     if request.form.get('delete'):
         data.delete_link(original_name)
         data.log('delete', original_name, url)
