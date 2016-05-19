@@ -83,8 +83,6 @@ def go(name):
     qs = (request.query_string or '').encode('utf-8')
     if qs:
         url += ('&' if '?' in url else '?') + qs
-    # Open quips directly in the Quip app.
-    url = re.sub(r'^https?://wave.quip.com/', 'quip://', url)
     data.log('redirect', name, url)
     data.update_count(name)
     return redirect(url)
