@@ -1,1 +1,1 @@
-BASE_URL = 'http://go.sendwave.com'  # for help text
+BASE_URL = 'http://go.wave.com'  # for help text
