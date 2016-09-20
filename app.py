@@ -24,6 +24,9 @@ def show_exception(e):
 @app.route('/')
 def root():
     """SHows a directory of all existing links."""
+    if request.host != 'go.wave.com':
+        return redirect('http://go.wave.com/')
+
     rows = [format_html('''
 <tr>
 <td class="name">go/<a href="/.edit?name={name_param}">{name}</a>
@@ -90,6 +93,10 @@ def go(name):
 @app.route('/.edit')
 def edit():
     """Shows the form for creating or editing a link."""
+    if request.host != 'go.wave.com':
+        return redirect(
+            'http://go.wave.com/.edit?' + flask.request.query_string)
+
     name = request.args.get('name', '').lstrip('.')
     url = data.get_url(name)
     if not name:
