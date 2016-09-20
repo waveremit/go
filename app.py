@@ -94,8 +94,7 @@ def go(name):
 def edit():
     """Shows the form for creating or editing a link."""
     if request.host != 'go.wave.com':
-        return redirect(
-            'http://go.wave.com/.edit?' + flask.request.query_string)
+        return redirect('http://go.wave.com/.edit?' + request.query_string)
 
     name = request.args.get('name', '').lstrip('.')
     url = data.get_url(name)
