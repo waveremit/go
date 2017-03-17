@@ -1,4 +1,6 @@
-import html, re
+from functools import wraps
+import html
+import re
 from urllib.parse import quote as urlquote
 
 from flask import Flask, redirect, request, Response
@@ -6,6 +8,19 @@ import config
 import data
 
 app = Flask('go')
+
+
+def request_is_secure():
+    return (request.is_secure or
+            request.headers.get('X-Forwarded-Proto', 'http') == 'https')
+
+def force_ssl(handler):
+    @wraps(handler)
+    def decorated(*args, **kwargs):
+        if not request_is_secure() and request.url.startswith('http://'):
+            return redirect('https://' + request.url[7:], code=301)
+        return handler(*args, **kwargs)
+    return decorated
 
 @app.before_request
 def before_request():
@@ -30,10 +45,11 @@ def acme(token):
     return key
 
 @app.route('/')
+@force_ssl
 def root():
-    """SHows a directory of all existing links."""
+    """Shows a directory of all existing links."""
     if request.host != 'go.wave.com':
-        return redirect('http://go.wave.com/')
+        return redirect('https://go.wave.com/')
 
     rows = [format_html('''
 <tr>
@@ -75,6 +91,7 @@ and URL "%s/%%s".
 ''' % (config.BASE_URL, ''.join(rows)))
 
 @app.route('/<path:name>')
+@force_ssl
 def go(name):
     """Redirects to a link."""
     url = data.get_url(name) or data.get_url(normalize(name))
@@ -99,10 +116,11 @@ def go(name):
     return redirect(url)
 
 @app.route('/.edit')
+@force_ssl
 def edit():
     """Shows the form for creating or editing a link."""
     if request.host != 'go.wave.com':
-        return redirect('http://go.wave.com/.edit?' + request.query_string)
+        return redirect('https://go.wave.com/.edit?' + request.query_string)
 
     name = request.args.get('name', '').lstrip('.')
     url = data.get_url(name)
@@ -157,6 +175,7 @@ then go/foo/bar will expand go/foo and substitute "bar" for "%s".
      name=name, name_param=urlquote(name), original_name=original_name))
 
 @app.route('/.save', methods=['POST'])
+@force_ssl
 def save():
     """Creates or edits a link in the database."""
     original_name = request.form.get('original_name', '').lstrip('.')
