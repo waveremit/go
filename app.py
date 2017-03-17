@@ -63,6 +63,7 @@ def root():
 <!doctype html>
 <link rel="icon" href=".icon.png">
 <link rel="stylesheet" href=".style.css">
+<title>All the links!</title>
 
 <div class="corner">
   <form action="/.edit">
@@ -142,6 +143,7 @@ def edit():
 <!doctype html>
 <link rel="icon" href=".icon.png">
 <link rel="stylesheet" href=".style.css">
+<title>{title}</title>
 
 <div class="corner"><a href="/">ALL THE LINKS!</a></div>
 <h1>{title}</h1>
@@ -240,8 +242,9 @@ def make_error_response(message):
 <!doctype html>
 <link rel="icon" href=".icon.png">
 <link rel="stylesheet" href=".style.css">
+<title>Error</title>
 
-<div class="corner"><a href="/">all links</a></div>
+<div class="corner"><a href="/">ALL THE LINKS!</a></div>
 <div>Oh poo. <pre>{message}</pre></div>
 ''', message=message))
 
