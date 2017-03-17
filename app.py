@@ -61,6 +61,7 @@ def root():
 
     return Response('''
 <!doctype html>
+<link rel="icon" href=".icon.png">
 <link rel="stylesheet" href=".style.css">
 
 <div class="corner">
@@ -139,6 +140,7 @@ def edit():
         message = " isn't an existing link. You can create it below."
     return Response(format_html('''
 <!doctype html>
+<link rel="icon" href=".icon.png">
 <link rel="stylesheet" href=".style.css">
 
 <div class="corner"><a href="/">ALL THE LINKS!</a></div>
@@ -218,6 +220,10 @@ def normalize(name):
 def stylesheet():
     return app.send_static_file('style.css')
 
+@app.route('/.icon.png')
+def favicon():
+    return app.send_static_file('icon.png')
+
 
 def find_acme_key(token):
     import os
@@ -232,6 +238,7 @@ def make_error_response(message):
     """Makes a nice error page."""
     return Response(format_html('''
 <!doctype html>
+<link rel="icon" href=".icon.png">
 <link rel="stylesheet" href=".style.css">
 
 <div class="corner"><a href="/">all links</a></div>
