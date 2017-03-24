@@ -3,32 +3,67 @@ import html
 import re
 from urllib.parse import quote as urlquote
 
-from flask import Flask, redirect, request, Response
-import config
+from flask import Flask, abort, redirect, request, Response
 import data
+import oauth2client.client
+
+BASE_URL = 'https://go.wave.com'
+CLIENT_ID = '249856883115-cs97qlkg5ohogb786l67piussauqhr7o.apps.googleusercontent.com'
+LOGIN_DOMAIN = 'wave.com'
+
+HTML_PROLOGUE = '''
+<!doctype html>
+<link rel="icon" href=".icon.png">
+<link rel="stylesheet" href=".style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+'''
 
 app = Flask('go')
 
 
-def request_is_secure():
-    return (request.is_secure or
-            request.headers.get('X-Forwarded-Proto', 'http') == 'https')
+def get_actual_request_url():
+    if (request.is_secure or
+            request.headers.get('X-Forwarded-Proto', 'http') == 'https'):
+        return re.sub('^http:', 'https:', request.url)
+    return request.url
 
-def force_ssl(handler):
+
+def require_login(handler):
     @wraps(handler)
     def decorated(*args, **kwargs):
-        if not request_is_secure() and request.url.startswith('http://'):
-            return redirect('https://' + request.url[7:], code=301)
+        url = get_actual_request_url()
+
+        # If not using HTTPS, redirect to HTTPS.
+        if url.startswith('http:'):
+            # 301 (permanent) redirect from HTTP to HTTPS is safe to cache.
+            return redirect('https:' + request.url[5:], code=301)
+
+        # If not logged in, redirect to login page.
+        try:
+            claims = oauth2client.client.verify_id_token(
+                request.cookies.get('id_token', ''), CLIENT_ID)
+        except oauth2client.crypt.AppIdentityError:
+            claims = {}
+        if claims.get('hd') != LOGIN_DOMAIN:
+            if '/.login' not in request.headers.get('Referer', ''):
+                # Must use 302 (temporary) here.  If we send 301 (permanent),
+                # Chrome will cache the redirect and never check back.
+                return redirect(BASE_URL + '/.login#' + url, code=302)
+            abort(403)
+
         return handler(*args, **kwargs)
     return decorated
+
 
 @app.before_request
 def before_request():
     data.open_db()
 
+
 @app.teardown_request
 def teardown_request(exception):
     data.close_db()
+
 
 @app.errorhandler(Exception)
 def show_exception(e):
@@ -36,20 +71,66 @@ def show_exception(e):
     return make_error_response(''.join(
         traceback.format_exception(type(e), e, e.__traceback__)))
 
-@app.route("/.well-known/acme-challenge/<token>")
+
+@app.route('/.well-known/acme-challenge/<token>')
 def acme(token):
-    """Proves to Letsencrypt that we own the domain go.wave.com."""
+    """Proves to Letsencrypt that we own this domain."""
     key = find_acme_key(token)
     if key is None:
         abort(404)
     return key
 
+
+@app.route('/.login')
+def login():
+    url = get_actual_request_url()
+    if url.startswith('http:'):
+        return redirect('https:' + request.url[5:], code=301)
+
+    return Response(HTML_PROLOGUE + '''
+<script src="https://apis.google.com/js/platform.js" async defer></script>
+<meta name="google-signin-client_id" content="%s">
+<meta name="google-signin-hosted_domain" content="%s">
+
+<div>
+<span id="state">Sign-in is required.</span>
+<span id="signout" style="display: none">
+    <a href="#" onclick="sign_out()">Sign out.</a></span>
+</div>
+<div class="g-signin2" data-onsuccess="on_signin"></div>
+
+<script>
+    var user;
+    var state = document.getElementById('state');
+    var signout = document.getElementById('signout');
+
+    function on_signin(signed_in_user) {
+        user = signed_in_user;
+        var email = user.getBasicProfile().getEmail();
+        if (email.endsWith('@%s')) {
+            state.innerText = 'You are signed in as ' + email + '.';
+            signout.style.display = 'inline';
+            document.cookie = 'id_token=' + user.getAuthResponse().id_token;
+            var next = (window.location.hash || '').substring(1);
+            if (next) window.location = next;
+        } else sign_out();
+    }
+
+    function sign_out() {
+        if (user) user.disconnect();
+        state.innerText = 'Sign-in is required.';
+        signout.style.display = 'none';
+    }
+</script>
+''' % (CLIENT_ID, LOGIN_DOMAIN, LOGIN_DOMAIN))
+
+
 @app.route('/')
-@force_ssl
+@require_login
 def root():
     """Shows a directory of all existing links."""
-    if request.host != 'go.wave.com':
-        return redirect('https://go.wave.com/')
+    if get_actual_request_url().rstrip('/') != BASE_URL.rstrip('/'):
+        return redirect(BASE_URL)
 
     rows = [format_html('''
 <tr>
@@ -57,12 +138,9 @@ def root():
 <td class="count">{count}
 <td class="url"><a href="{url}">{url}</a>
 </tr>''', name=name, url=url, name_param=urlquote(name), count=count)
-    for name, url, count in data.get_all_links()]
+            for name, url, count in data.get_all_links()]
 
-    return Response('''
-<!doctype html>
-<link rel="icon" href=".icon.png">
-<link rel="stylesheet" href=".style.css">
+    return Response(HTML_PROLOGUE + '''
 <title>All the links!</title>
 
 <div class="corner">
@@ -90,10 +168,11 @@ and URL "%s/%%s".
 <tr><th>shortcut</th><th>clicks</th><th>url</th>
 %s
 </table>
-''' % (config.BASE_URL, ''.join(rows)))
+''' % (BASE_URL, ''.join(rows)))
+
 
 @app.route('/<path:name>')
-@force_ssl
+@require_login
 def go(name):
     """Redirects to a link."""
     url = data.get_url(name) or data.get_url(normalize(name))
@@ -117,13 +196,11 @@ def go(name):
     data.update_count(name)
     return redirect(url)
 
+
 @app.route('/.edit')
-@force_ssl
+@require_login
 def edit():
     """Shows the form for creating or editing a link."""
-    if request.host != 'go.wave.com':
-        return redirect('https://go.wave.com/.edit?' + request.query_string)
-
     name = request.args.get('name', '').lstrip('.')
     url = data.get_url(name)
     if not name:
@@ -139,10 +216,7 @@ def edit():
     else:
         title = 'Create go/' + name
         message = " isn't an existing link. You can create it below."
-    return Response(format_html('''
-<!doctype html>
-<link rel="icon" href=".icon.png">
-<link rel="stylesheet" href=".style.css">
+    return Response(HTML_PROLOGUE + format_html('''
 <title>{title}</title>
 
 <div class="corner"><a href="/">ALL THE LINKS!</a></div>
@@ -178,8 +252,9 @@ then go/foo/bar will expand go/foo and substitute "bar" for "%s".
 ''', title=title, message=message, url=url or '',
      name=name, name_param=urlquote(name), original_name=original_name))
 
+
 @app.route('/.save', methods=['POST'])
-@force_ssl
+@require_login
 def save():
     """Creates or edits a link in the database."""
     original_name = request.form.get('original_name', '').lstrip('.')
@@ -206,6 +281,7 @@ def save():
         return make_error_response('go/{} already exists.'.format(name))
     return redirect('/.edit?name=' + urlquote(name))
 
+
 def normalize(name):
     """Keeps only lowercase letters, digits, and slashes.  We don't require all
     shortcuts to be made only of these characters, but we encourage it by
@@ -218,9 +294,11 @@ def normalize(name):
     """
     return re.sub(r'[^a-z0-9/]', '', name.lower())
 
+
 @app.route('/.style.css')
 def stylesheet():
     return app.send_static_file('style.css')
+
 
 @app.route('/.icon.png')
 def favicon():
@@ -236,17 +314,15 @@ def find_acme_key(token):
             n = k.replace("ACME_TOKEN_", "")
             return os.environ.get("ACME_KEY_{}".format(n))
 
+
 def make_error_response(message):
     """Makes a nice error page."""
-    return Response(format_html('''
-<!doctype html>
-<link rel="icon" href=".icon.png">
-<link rel="stylesheet" href=".style.css">
+    return Response(HTML_PROLOGUE + format_html('''
 <title>Error</title>
-
 <div class="corner"><a href="/">ALL THE LINKS!</a></div>
 <div>Oh poo. <pre>{message}</pre></div>
 ''', message=message))
+
 
 def format_html(template, **kwargs):
     """Like format(), but HTML-escapes all the parameters."""
