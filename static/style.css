@@ -1,6 +1,6 @@
 body, input { font-family: helvetica, arial; font-size: 13px; }
 body { margin: 1em 2em; position: relative; }
-.corner { position: absolute; top: 0; right: 0; }
+.corner { float: right; }
 h1 { font-size: 32px; font-weight: normal; }
 a { color: #0000f0; }
 a:link { text-decoration: none; }
@@ -9,7 +9,7 @@ div, table { margin: 1em 0; }
 li { margin: 0.5em 0; }
 div:first-child { margin-top: 0; }
 div:last-child { margin-bottom: 0; }
-th { text-align: left; font-weight: normal; opacity: 0.5; }
+th { text-align: left; font-weight: bold; opacity: 0.5; }
 table.links th, table.links td { padding: 0 1em 0.5em 0; white-space: nowrap; }
 td.count { text-align: right; }
 td.url { max-width: 40em; overflow: hidden; text-overflow: ellipsis; }

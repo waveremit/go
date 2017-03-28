@@ -183,7 +183,7 @@ def home():
 </div>
 
 <table class="links" cellpadding=0 cellspacing=0>
-<tr><th>shortcut</th><th>clicks</th><th>url</th>
+<tr><th>Shortcut</th><th>Clicks</th><th>Destination</th>
 %s
 </table>
 ''' % ''.join(rows))
