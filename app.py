@@ -13,8 +13,8 @@ LOGIN_DOMAIN = 'wave.com'
 
 HTML_PROLOGUE = '''
 <!doctype html>
-<link rel="icon" href=".icon.png">
-<link rel="stylesheet" href=".style.css">
+<link rel="icon" href="/.static/icon.png">
+<link rel="stylesheet" href="/.static/style.css">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 '''
 
@@ -134,7 +134,7 @@ def root():
 
     rows = [format_html('''
 <tr>
-<td class="name">go/<a href="/.edit?name={name_param}">{name}</a>
+<td class="name">go.wave.com/<a href="/.edit?name={name_param}">{name}</a>
 <td class="count">{count}
 <td class="url"><a href="{url}">{url}</a>
 </tr>''', name=name, url=url, name_param=urlquote(name), count=count)
@@ -143,32 +143,52 @@ def root():
     return Response(HTML_PROLOGUE + '''
 <title>All the links!</title>
 
-<div class="corner">
-  <form action="/.edit">
-    <input name="name" placeholder="new shortcut">
-  </form>
-</div>
 <h1>Where do you want to go/ today?</h1>
 
-<div class="tip"><a href="#" onclick="document.getElementById('help').style.display='block'">Not working for you?</a></div>
+<div class="tip">Wondering how this works? <a href="#" onclick="document.getElementById('help').style.display='block'">Learn more.</a></div>
 
 <div id="help" class="tip">
-Try typing "go/" into your address bar.
-If it doesn't take you anywhere,
-check to make sure you have an aText snippet set up for "go/".
-<p>
-As an alternative, you can configure Chrome
-to let you type "go foo" instead of "go/foo" in the address bar.
-To do this, go to Chrome Settings > Manage Search Engines,
-then add a search engine with the keyword "go"
-and URL "%s/%%s".
+    <div>
+        Use go.wave.com/ to make a short, memorable link to any URL.
+    </div>
+    <div>
+        For example, see the entry for "go.wave.com/allhands" below?
+        That means you can use "go.wave.com/allhands" as a link
+        (in Slack, in a Quip, or in your address bar)
+        and it will go to the URL shown in that entry.
+    </div>
+    <div>
+        For faster access,
+        set up Chrome to let you type "go foo" in the address bar
+        instead of "go.wave.com/foo":
+        <ol>
+            <li>Open <b>Chrome</b> &gt; <b>Preferences...</b>
+            <li>Under <b>Search</b>, click <b>Manage search engines...</b>
+            <li>Scroll down to "Other search engines" and find the row at the bottom that looks like this:
+
+        <div><img src="/.static/search-engine-empty.png"></div>
+
+            <li>Fill it in like this:
+
+        <div><img src="/.static/search-engine-filled.png"></div>
+            <li>Then click <b>Done</b>.  You're all set!
+        </ol>
+    </div>
+</div>
+
+<div>
+    <form action="/.edit">
+        Add or edit a shortcut:
+        go.wave.com/<input name="name" placeholder="shortcut" size=12>
+        <input value="edit" type="submit">
+    </form>
 </div>
 
 <table class="links" cellpadding=0 cellspacing=0>
 <tr><th>shortcut</th><th>clicks</th><th>url</th>
 %s
 </table>
-''' % (BASE_URL, ''.join(rows)))
+''' % ''.join(rows))
 
 
 @app.route('/<path:name>')
@@ -210,11 +230,11 @@ def edit():
             name = normalize(name)  # default to normalized when creating
     original_name = message = ''
     if url:
-        title = 'Edit go/' + name
+        title = 'Edit go.wave.com/' + name
         message = ' is an existing link. You can change it below.'
         original_name = name
     else:
-        title = 'Create go/' + name
+        title = 'Create go.wave.com/' + name
         message = " isn't an existing link. You can create it below."
     return Response(HTML_PROLOGUE + format_html('''
 <title>{title}</title>
@@ -222,11 +242,11 @@ def edit():
 <div class="corner"><a href="/">ALL THE LINKS!</a></div>
 <h1>{title}</h1>
 
-<div><a href="/{name_param}">go/{name_param}</a> {message}</div>
+<div><a href="/{name_param}">go.wave.com/{name_param}</a> {message}</div>
 <form action="/.save" method="post">
 <input type="hidden" name="original_name" value="{original_name}">
 <table class="form" cellpadding=0 cellspacing=0><tr valign="center">
-  <td>go/<input name="name" value="{name}" placeholder="shortcut" size=12>
+  <td>go.wave.com/<input name="name" value="{name}" placeholder="shortcut" size=12>
   <td><span class="arrow">\u2192</span>
   <td><input id="url" name="url" value="{url}" placeholder="URL" size=60>
 </tr></table>
@@ -241,12 +261,14 @@ def edit():
 <div class="tip">
 Fancy tricks:
 <ul>
-<li>If go/foo is defined,
-then go/foo?a=b will expand go/foo and append "a=b" as a form variable.
-<li>If go/foo is defined but not go/foo/bar,
-then go/foo/bar will expand go/foo and append "/bar".
-<li>If go/foo is defined to be a URL that contains "%s",
-then go/foo/bar will expand go/foo and substitute "bar" for "%s".
+<li>If go.wave.com/foo is defined,
+then go.wave.com/foo?a=b
+will expand go.wave.com/foo and append "a=b" as a form variable.
+<li>If go.wave.com/foo is defined but not go.wave.com/foo/bar,
+then go.wave.com/foo/bar will expand go.wave.com/foo and append "/bar".
+<li>If go.wave.com/foo is defined to be a URL that contains "%s",
+then go.wave.com/foo/bar
+will expand go.wave.com/foo and substitute "bar" for "%s".
 </ul>
 </div>
 ''', title=title, message=message, url=url or '',
@@ -272,13 +294,13 @@ def save():
         if original_name:
             if not data.update_link(original_name, name, url):
                 return make_error_response(
-                    'Someone else renamed go/{}.'.format(original_name))
+                    'Someone else renamed go.wave.com/%s.' % original_name)
             data.log('update', name, url)
         else:
             data.add_link(name, url)
             data.log('create', name, url)
     except data.IntegrityError:
-        return make_error_response('go/{} already exists.'.format(name))
+        return make_error_response('go.wave.com/%s already exists.' % name)
     return redirect('/.edit?name=' + urlquote(name))
 
 
@@ -295,14 +317,9 @@ def normalize(name):
     return re.sub(r'[^a-z0-9/]', '', name.lower())
 
 
-@app.route('/.style.css')
-def stylesheet():
-    return app.send_static_file('style.css')
-
-
-@app.route('/.icon.png')
-def favicon():
-    return app.send_static_file('icon.png')
+@app.route('/.static/<path:filename>')
+def static_file(filename):
+    return app.send_static_file(filename)
 
 
 def find_acme_key(token):

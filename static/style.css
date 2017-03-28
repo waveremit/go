@@ -2,9 +2,13 @@ body, input { font-family: helvetica, arial; font-size: 13px; }
 body { margin: 1em 2em; position: relative; }
 .corner { position: absolute; top: 0; right: 0; }
 h1 { font-size: 32px; font-weight: normal; }
+a { color: #0000f0; }
 a:link { text-decoration: none; }
 a:link:hover { text-decoration: underline; }
-div, table { margin: 0 0 1em; }
+div, table { margin: 1em 0; }
+li { margin: 0.5em 0; }
+div:first-child { margin-top: 0; }
+div:last-child { margin-bottom: 0; }
 th { text-align: left; font-weight: normal; opacity: 0.5; }
 table.links th, table.links td { padding: 0 1em 0.5em 0; white-space: nowrap; }
 td.count { text-align: right; }
@@ -12,5 +16,5 @@ td.url { max-width: 40em; overflow: hidden; text-overflow: ellipsis; }
 .arrow { font-size: 24px; position: relative; top: -2px; margin: 0 6px; }
 input { margin: 0; }
 pre { font-family: helvetica, arial; opacity: 0.5; }
-.tip { opacity: 0.5; }
-#help { display: none; padding: 1em; max-width: 40em; border: 1px solid grey; }
+.tip { color: #080; }
+#help { display: none; padding: 1em; border: 1px solid grey; }
