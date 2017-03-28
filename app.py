@@ -126,6 +126,7 @@ def login():
 
     function sign_out() {
         if (user) user.disconnect();
+        document.cookie = 'id_token=';
         state.innerText = 'Sign-in is required.';
         signout.style.display = 'none';
     }
