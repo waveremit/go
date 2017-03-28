@@ -11,13 +11,6 @@ BASE_URL = 'https://go.wave.com'
 CLIENT_ID = '249856883115-cs97qlkg5ohogb786l67piussauqhr7o.apps.googleusercontent.com'
 LOGIN_DOMAIN = 'wave.com'
 
-HTML_PROLOGUE = '''
-<!doctype html>
-<link rel="icon" href="/.static/icon.png">
-<link rel="stylesheet" href="/.static/style.css">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-'''
-
 app = Flask('go')
 
 
@@ -95,7 +88,7 @@ def login():
     if url.startswith('http:'):
         return redirect('https:' + request.url[5:], code=301)
 
-    return Response(HTML_PROLOGUE + '''
+    return make_page_response('Authentication', '''
 <script src="https://apis.google.com/js/platform.js" async defer></script>
 <meta name="google-signin-client_id" content="%s">
 <meta name="google-signin-hosted_domain" content="%s">
@@ -136,7 +129,7 @@ def login():
 
 @app.route('/')
 @require_login
-def root():
+def home():
     """Shows a directory of all existing links."""
     if get_actual_request_url().rstrip('/') != BASE_URL.rstrip('/'):
         return redirect(BASE_URL)
@@ -149,11 +142,7 @@ def root():
 </tr>''', name=name, url=url, name_param=urlquote(name), count=count)
             for name, url, count in data.get_all_links()]
 
-    return Response(HTML_PROLOGUE + '''
-<title>All the links!</title>
-
-<h1>Where do you want to go/ today?</h1>
-
+    return make_page_response('Where do you want to go/ today?', '''
 <div class="tip">Wondering how this works? <a href="#" onclick="document.getElementById('help').style.display='block'">Learn more.</a></div>
 
 <div id="help" class="tip">
@@ -245,12 +234,7 @@ def edit():
     else:
         title = 'Create go.wave.com/' + name
         message = " isn't an existing link. You can create it below."
-    return Response(HTML_PROLOGUE + format_html('''
-<title>{title}</title>
-
-<div class="corner"><a href="/">ALL THE LINKS!</a></div>
-<h1>{title}</h1>
-
+    return make_page_response(title, format_html('''
 <div><a href="/{name_param}">go.wave.com/{name_param}</a> {message}</div>
 <form action="/.save" method="post">
 <input type="hidden" name="original_name" value="{original_name}">
@@ -341,13 +325,24 @@ def find_acme_key(token):
             return os.environ.get("ACME_KEY_{}".format(n))
 
 
+def make_page_response(title, content):
+    return Response(format_html('''
+<!doctype html>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/.static/icon.png">
+<link rel="stylesheet" href="/.static/style.css">
+<title>{title}</title>
+<div class="corner">
+    <a href="/">Home</a> \xb7 <a href="/.login">Sign out</a>
+</div>
+<h1>{title}</h1>
+''', title=title) + content)
+
+
 def make_error_response(message):
     """Makes a nice error page."""
-    return Response(HTML_PROLOGUE + format_html('''
-<title>Error</title>
-<div class="corner"><a href="/">ALL THE LINKS!</a></div>
-<div>Oh poo. <pre>{message}</pre></div>
-''', message=message))
+    return make_page_response(
+        'Error', '<div>Oh poo. <pre>{message}</pre></div>', message=message)
 
 
 def format_html(template, **kwargs):
