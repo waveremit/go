@@ -33,10 +33,11 @@ def require_login(handler):
     def decorated(*args, **kwargs):
         url = get_actual_request_url()
 
-        # If not using HTTPS, redirect to HTTPS.
-        if url.startswith('http:'):
-            # 301 (permanent) redirect from HTTP to HTTPS is safe to cache.
-            return redirect('https:' + request.url[5:], code=301)
+        # If not using HTTPS, or not on go.wave.com, redirect permanently.
+        proper_url = re.sub(r'^https?://go\.(send)?wave\.com\b',
+                            'https://go.wave.com', url)
+        if proper_url != url:
+            return redirect(proper_url, code=301)
 
         # If not logged in, redirect to login page.
         try:
