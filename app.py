@@ -28,31 +28,38 @@ def get_actual_request_url():
     return request.url
 
 
+def is_logged_in():
+    try:
+        claims = oauth2client.client.verify_id_token(
+            request.cookies.get('id_token', ''), CLIENT_ID)
+        return claims.get('hd') == LOGIN_DOMAIN
+    except oauth2client.crypt.AppIdentityError:
+        return False
+
+
 def require_login(handler):
     @wraps(handler)
     def decorated(*args, **kwargs):
         url = get_actual_request_url()
 
-        # If not using HTTPS, or not on go.wave.com, redirect permanently.
-        proper_url = re.sub(r'^https?://go\.(send)?wave\.com\b',
-                            'https://go.wave.com', url)
+        # Ensure HTTPS, and ensure we're on go.wave.com.
+        proper_url = re.sub(r'^https?://go\.(send)?wave\.com\b', BASE_URL, url)
         if proper_url != url:
-            return redirect(proper_url, code=301)
+            return redirect(proper_url, code=301)  # 301 = permanent redirect
 
-        # If not logged in, redirect to login page.
-        try:
-            claims = oauth2client.client.verify_id_token(
-                request.cookies.get('id_token', ''), CLIENT_ID)
-        except oauth2client.crypt.AppIdentityError:
-            claims = {}
-        if claims.get('hd') != LOGIN_DOMAIN:
-            if '/.login' not in request.headers.get('Referer', ''):
-                # Must use 302 (temporary) here.  If we send 301 (permanent),
-                # Chrome will cache the redirect and never check back.
-                return redirect(BASE_URL + '/.login#' + url, code=302)
-            abort(403)
+        if is_logged_in():
+            return handler(*args, **kwargs)
 
-        return handler(*args, **kwargs)
+        if '/.login' in request.headers.get('Referer', ''):
+            # We just got here from the login page, yet we don't have
+            # a valid login.  Maybe the user can fix it using the sign-in
+            # and sign-out buttons on the login page, so go back there.
+            return redirect(BASE_URL + '/.login')
+
+        # Get the user to log in and then come back here.  (The part after
+        # the '#' tells the login page where to redirect to.)
+        return redirect(BASE_URL + '/.login#' + url)
+
     return decorated
 
 
