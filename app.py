@@ -88,7 +88,7 @@ def login():
     if url.startswith('http:'):
         return redirect('https:' + request.url[5:], code=301)
 
-    return make_page_response('Authentication', '''
+    return make_page_response('Account', '''
 <script src="https://apis.google.com/js/platform.js" async defer></script>
 <meta name="google-signin-client_id" content="%s">
 <meta name="google-signin-hosted_domain" content="%s">
@@ -234,7 +234,8 @@ def edit():
     else:
         title = 'Create go.wave.com/' + name
         message = " isn't an existing link. You can create it below."
-    return make_page_response(title, format_html('''
+    return make_page_response(title, format_html(
+        '''
 <div><a href="/{name_param}">go.wave.com/{name_param}</a> {message}</div>
 <form action="/.save" method="post">
 <input type="hidden" name="original_name" value="{original_name}">
@@ -264,8 +265,9 @@ then go.wave.com/foo/bar
 will expand go.wave.com/foo and substitute "bar" for "%s".
 </ul>
 </div>
-''', title=title, message=message, url=url or '',
-     name=name, name_param=urlquote(name), original_name=original_name))
+''',
+        title=title, message=message, url=url or '',
+        name=name, name_param=urlquote(name), original_name=original_name))
 
 
 @app.route('/.save', methods=['POST'])
@@ -333,7 +335,7 @@ def make_page_response(title, content):
 <link rel="stylesheet" href="/.static/style.css">
 <title>{title}</title>
 <div class="corner">
-    <a href="/">Home</a> \xb7 <a href="/.login">Sign out</a>
+    <a href="/">Home</a> \xb7 <a href="/.login">Account</a>
 </div>
 <h1>{title}</h1>
 ''', title=title) + content)
